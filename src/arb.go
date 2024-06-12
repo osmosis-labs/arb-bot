@@ -11,30 +11,45 @@ func CheckArbitrage() error {
 	}
 	fmt.Println("Binance BTC Price:", binanceBTCPrice)
 
-	binanceUSDCPrice, err := GetBinanceUSDCToBTCPrice()
+	osmosisBTCPrice, err := GetOsmosisBTCToUSDCPrice(defaultArbAmt)
 	if err != nil {
-		return fmt.Errorf("error fetching Binance USDC price: %v", err)
+		return fmt.Errorf("error fetching Osmosis BTC price: %v", err)
 	}
-	fmt.Println("Binance USDC Price:", binanceUSDCPrice)
+	fmt.Println("Osmosis BTC Price:", osmosisBTCPrice)
 
-	// balance, err := getBTCBalance()
-	// if err != nil {
-	// 	return fmt.Errorf("error fetching BTC balance: %v", err)
-	// }
-	// fmt.Println("BTC Balance:", balance)
+	b, u, err := GetBinanceBTCUSDTBalance()
+	if err != nil {
+		return fmt.Errorf("error fetching Osmosis BTC price: %v", err)
+	}
 
-	// amount := int64(defaultArbAmt) * int64(math.Pow(10, osmosisWBTCExponent))
-	// osmosisBTCPrice, err := GetOsmosisBTCToUSDCPrice(amount)
-	// if err != nil {
-	// 	return fmt.Errorf("error fetching Osmosis BTC price: %v", err)
-	// }
-	// fmt.Println("Osmosis BTC Price:", osmosisBTCPrice)
+	fmt.Printf("btc, usdc balance: %f, %f\n", b, u)
 
-	// if binanceBTCPrice < osmosisBTCPrice*riskFactor {
-	// 	fmt.Println("Arbitrage Opportunity: Buy BTC on Binance, Sell BTC on Osmosis")
-	// } else if binanceBTCPrice*riskFactor > osmosisBTCPrice {
-	// 	fmt.Println("Arbitrage Opportunity: Sell BTC on Binance, Buy BTC on Osmosis")
-	// }
+	boughtAmt, err := BuyBinanceBTC(defaultArbAmt)
+	if err != nil {
+		return err
+	}
+	fmt.Printf("bought %f\n", boughtAmt)
+
+	sellAmt, err := SellBinanceBTC(defaultArbAmt)
+	if err != nil {
+		return err
+	}
+	fmt.Printf("sold %f\n", sellAmt)
+	b, u, err = GetBinanceBTCUSDTBalance()
+	if err != nil {
+		return fmt.Errorf("error fetching Osmosis BTC price: %v", err)
+	}
+
+	fmt.Printf("btc, usdc balance: %f, %f\n", b, u)
+
+	if binanceBTCPrice < osmosisBTCPrice*riskFactor {
+		fmt.Println("Arbitrage Opportunity: Buy BTC on Binance, Sell BTC on Osmosis")
+
+	} else if binanceBTCPrice*riskFactor > osmosisBTCPrice {
+		fmt.Println("Arbitrage Opportunity: Sell BTC on Binance, Buy BTC on Osmosis")
+	} else {
+		fmt.Println("no arb opportunity")
+	}
 
 	return nil
 }

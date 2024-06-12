@@ -4,6 +4,7 @@ import (
 	"log"
 
 	"github.com/joho/godotenv"
+	"github.com/osmosis-labs/arb-bot/src"
 )
 
 func main() {
@@ -11,6 +12,12 @@ func main() {
 
 	if err != nil {
 		log.Fatalf("Error loading .env file")
+	}
+
+	err = src.CheckArbitrage()
+
+	if err != nil {
+		log.Fatal("Error in arb logic", err)
 	}
 
 	// src.GetBinanceBalance()

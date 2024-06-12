@@ -3,16 +3,38 @@ package src
 import (
 	"encoding/json"
 	"fmt"
+	"math"
 	"net/http"
 	"strconv"
 )
+
+func GetOsmosisBTCToUSDCPrice(tokenInAmount float64) (float64, error) {
+	amountWithExponentApplied := int64(tokenInAmount * math.Pow(10, osmosisWBTCExponent))
+
+	btcPrice, err := getOsmosisPrice(BTCDenom, USDCDenom, amountWithExponentApplied)
+	if err != nil {
+		return 0, err
+	}
+
+	return btcPrice / math.Pow(10, osmosisUSDCExponent), nil
+}
+
+func GetOsmosisUSDCToBTCPrice(tokenInAmount float64) (float64, error) {
+	amountWithExponentApplied := int64(tokenInAmount * math.Pow(10, osmosisWBTCExponent))
+
+	usdcPrice, err := getOsmosisPrice(USDCDenom, BTCDenom, amountWithExponentApplied)
+	if err != nil {
+		return 0, err
+	}
+	return usdcPrice / math.Pow(10, osmosisUSDCExponent), nil
+}
 
 type OsmosisResponse struct {
 	AmountOut string `json:"amount_out"`
 }
 
-func getOsmosisPrice(tokenIn, tokenOut, tokenInAmount string) (float64, error) {
-	url := fmt.Sprintf("%s?tokenIn=%s%s&tokenOutDenom=%s&humanDenoms=false", osmosisQuoteAPI, tokenInAmount, tokenIn, tokenOut)
+func getOsmosisPrice(tokenInDenom, tokenOutDenom string, tokenInAmount int64) (float64, error) {
+	url := fmt.Sprintf("%s?tokenIn=%d%s&tokenOutDenom=%s&humanDenoms=false", osmosisQuoteAPI, tokenInAmount, tokenInDenom, tokenOutDenom)
 	resp, err := http.Get(url)
 	if err != nil {
 		return 0, fmt.Errorf("error fetching price from Osmosis: %v", err)
@@ -35,12 +57,4 @@ func getOsmosisPrice(tokenIn, tokenOut, tokenInAmount string) (float64, error) {
 	}
 
 	return amountOut, nil
-}
-
-func GetOsmosisBTCToUSDCPrice(tokenInAmount string) (float64, error) {
-	return getOsmosisPrice(BTCDenom, USDCDenom, tokenInAmount)
-}
-
-func GetOsmosisUSDCToBTCPrice(tokenInAmount string) (float64, error) {
-	return getOsmosisPrice(USDCDenom, BTCDenom, tokenInAmount)
 }

@@ -7,8 +7,8 @@ const (
 
 	binanceBTCUSDTTicker = "BTCUSDT"
 
-	defaultArbAmt = 1
-	riskFactor    = 0.9
+	defaultArbAmt = 0.0001
+	riskFactor    = 0.98
 
 	osmosisWBTCExponent = 8
 	osmosisUSDCExponent = 6

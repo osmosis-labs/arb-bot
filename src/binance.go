@@ -84,6 +84,53 @@ func GetBinanceBTCUSDTBalance() (btcBalance float64, usdtBalance float64, err er
 	return btcBalance, usdtBalance, nil
 }
 
+func BuyBinanceBTC(amount float64) (boughtAmount float64, err error) {
+	apiKey := os.Getenv("BINANCE_API_KEY")
+	secretKey := os.Getenv("BINANCE_SECRET_KEY")
+	client := binance.NewClient(apiKey, secretKey)
+
+	amountStr := strconv.FormatFloat(amount, 'f', -1, 64)
+
+	// TODO: consider doing limit orders here
+	order, err := client.NewCreateOrderService().Symbol("BTCUSDT").Side(binance.SideTypeBuy).Type(binance.OrderTypeMarket).Quantity(amountStr).Do(context.Background())
+	if err != nil {
+		return 0, err
+	}
+
+	boughtAmount, err = strconv.ParseFloat(order.ExecutedQuantity, 64)
+	if err != nil {
+		return 0, err
+	}
+
+	return boughtAmount, nil
+}
+
+func SellBinanceBTC(amount float64) (soldAmount float64, err error) {
+	apiKey := os.Getenv("BINANCE_API_KEY")
+	secretKey := os.Getenv("BINANCE_SECRET_KEY")
+	client := binance.NewClient(apiKey, secretKey)
+
+	amountStr := strconv.FormatFloat(amount, 'f', -1, 64)
+
+	// TODO: consider doing limit orders here
+	order, err := client.NewCreateOrderService().Symbol("BTCUSDT").Side(binance.SideTypeBuy).Type(binance.OrderTypeMarket).Quantity(amountStr).Do(context.Background())
+	if err != nil {
+		return 0, err
+	}
+
+	fmt.Println("----[]")
+	fmt.Println(order.Fills)
+	fmt.Println(order.Price)
+	fmt.Println("----[]")
+
+	soldAmount, err = strconv.ParseFloat(order.ExecutedQuantity, 64)
+	if err != nil {
+		return 0, err
+	}
+
+	return soldAmount, nil
+}
+
 func filterBalances(balances []binance.Balance, assets []string) []binance.Balance {
 	var filtered []binance.Balance
 	assetSet := make(map[string]bool)
