@@ -29,7 +29,7 @@ func GetOsmosisUSDCToBTCPrice(tokenInAmount float64) (float64, error) {
 	return usdcPrice / math.Pow(10, osmosisUSDCExponent), nil
 }
 
-type OsmosisResponse struct {
+type QuoteResponse struct {
 	AmountOut string `json:"amount_out"`
 }
 
@@ -45,7 +45,7 @@ func getOsmosisPrice(tokenInDenom, tokenOutDenom string, tokenInAmount int64) (f
 		return 0, fmt.Errorf("error fetching price from Osmosis: status code %d", resp.StatusCode)
 	}
 
-	var osmosisResp OsmosisResponse
+	var osmosisResp QuoteResponse
 	err = json.NewDecoder(resp.Body).Decode(&osmosisResp)
 	if err != nil {
 		return 0, fmt.Errorf("error decoding response: %v", err)
