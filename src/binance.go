@@ -84,7 +84,7 @@ func GetBinanceBTCUSDTBalance() (btcBalance float64, usdtBalance float64, err er
 	return btcBalance, usdtBalance, nil
 }
 
-func BuyBinanceBTC(amount float64) (boughtAmount float64, err error) {
+func BuyBinanceBTC(amount float64) (boughtAmount, boughtPrice float64, err error) {
 	apiKey := os.Getenv("BINANCE_API_KEY")
 	secretKey := os.Getenv("BINANCE_SECRET_KEY")
 	client := binance.NewClient(apiKey, secretKey)
@@ -94,18 +94,23 @@ func BuyBinanceBTC(amount float64) (boughtAmount float64, err error) {
 	// TODO: consider doing limit orders here
 	order, err := client.NewCreateOrderService().Symbol("BTCUSDT").Side(binance.SideTypeBuy).Type(binance.OrderTypeMarket).Quantity(amountStr).Do(context.Background())
 	if err != nil {
-		return 0, err
+		return 0, 0, err
+	}
+
+	boughtPrice, err = strconv.ParseFloat(order.Fills[0].Price, 64)
+	if err != nil {
+		return 0, 0, err
 	}
 
 	boughtAmount, err = strconv.ParseFloat(order.ExecutedQuantity, 64)
 	if err != nil {
-		return 0, err
+		return 0, 0, err
 	}
 
-	return boughtAmount, nil
+	return boughtAmount, boughtPrice, nil
 }
 
-func SellBinanceBTC(amount float64) (soldAmount float64, err error) {
+func SellBinanceBTC(amount float64) (soldAmount, soldPrice float64, err error) {
 	apiKey := os.Getenv("BINANCE_API_KEY")
 	secretKey := os.Getenv("BINANCE_SECRET_KEY")
 	client := binance.NewClient(apiKey, secretKey)
@@ -113,22 +118,22 @@ func SellBinanceBTC(amount float64) (soldAmount float64, err error) {
 	amountStr := strconv.FormatFloat(amount, 'f', -1, 64)
 
 	// TODO: consider doing limit orders here
-	order, err := client.NewCreateOrderService().Symbol("BTCUSDT").Side(binance.SideTypeBuy).Type(binance.OrderTypeMarket).Quantity(amountStr).Do(context.Background())
+	order, err := client.NewCreateOrderService().Symbol("BTCUSDT").Side(binance.SideTypeSell).Type(binance.OrderTypeMarket).Quantity(amountStr).Do(context.Background())
 	if err != nil {
-		return 0, err
+		return 0, 0, err
 	}
 
-	fmt.Println("----[]")
-	fmt.Println(order.Fills)
-	fmt.Println(order.Price)
-	fmt.Println("----[]")
+	soldPrice, err = strconv.ParseFloat(order.Fills[0].Price, 64)
+	if err != nil {
+		return 0, 0, err
+	}
 
 	soldAmount, err = strconv.ParseFloat(order.ExecutedQuantity, 64)
 	if err != nil {
-		return 0, err
+		return 0, 0, err
 	}
 
-	return soldAmount, nil
+	return soldAmount, soldPrice, nil
 }
 
 func filterBalances(balances []binance.Balance, assets []string) []binance.Balance {

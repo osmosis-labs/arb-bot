@@ -24,13 +24,20 @@ func CheckArbitrage() error {
 
 	fmt.Printf("btc, usdc balance: %f, %f\n", b, u)
 
-	boughtAmt, err := BuyBinanceBTC(defaultArbAmt)
+	boughtAmt, _, err := BuyBinanceBTC(defaultArbAmt)
 	if err != nil {
 		return err
 	}
 	fmt.Printf("bought %f\n", boughtAmt)
 
-	sellAmt, err := SellBinanceBTC(defaultArbAmt)
+	b, u, err = GetBinanceBTCUSDTBalance()
+	if err != nil {
+		return fmt.Errorf("error fetching Osmosis BTC price: %v", err)
+	}
+
+	fmt.Printf("btc, usdc balance: %f, %f\n", b, u)
+
+	sellAmt, _, err := SellBinanceBTC(defaultArbAmt)
 	if err != nil {
 		return err
 	}
