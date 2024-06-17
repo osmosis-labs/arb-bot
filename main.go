@@ -4,6 +4,9 @@ import (
 	"log"
 
 	"github.com/joho/godotenv"
+
+	sdk "github.com/cosmos/cosmos-sdk/types"
+
 	"github.com/osmosis-labs/arb-bot/src"
 )
 
@@ -14,21 +17,19 @@ func main() {
 		log.Fatalf("Error loading .env file")
 	}
 
-	err = src.CheckArbitrage()
-
+	seedConfig, err := src.OsmosisInit()
 	if err != nil {
-		log.Fatal("Error in arb logic", err)
+		log.Fatal(err)
 	}
 
-	// src.GetBinanceBalance()
+	err = src.TopOfBlockAuction(seedConfig, sdk.NewCoin("uosmo", sdk.NewInt(10)), sdk.NewCoin("test", sdk.NewInt(10)))
+	if err != nil {
+		log.Fatal(err)
+	}
 
-	// note that having a small quota would give us 502 error from SQS
-	// tokenInAmount := "10000"
+	// err = src.CheckArbitrage()
 
-	// btcToUsdcPrice, err := src.GetOsmosisBTCToUSDCPrice(tokenInAmount)
 	// if err != nil {
-	// 	fmt.Println(err)
-	// 	return
+	// 	log.Fatal("Error in arb logic", err)
 	// }
-	// fmt.Printf("BTC to USDC price for %s BTC: %f\n", tokenInAmount, btcToUsdcPrice)
 }

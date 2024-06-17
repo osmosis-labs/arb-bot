@@ -3,7 +3,6 @@ package src
 import (
 	"context"
 	"encoding/hex"
-	"log"
 	"os"
 	"time"
 
@@ -22,7 +21,7 @@ type SeedConfig struct {
 }
 
 const (
-	GRPC_ADDRESS = "http://grpc.osmosis.zone:9090/"
+	GRPC_ADDRESS = "https://grpc.osmosis.zone:9090/"
 	CHAIN_ID     = "osmosis-1"
 )
 
@@ -32,7 +31,10 @@ var (
 )
 
 func OsmosisInit() (SeedConfig, error) {
-	conn := CreateGRPCConnection(GRPC_ADDRESS)
+	conn, err := CreateGRPCConnection(GRPC_ADDRESS)
+	if err != nil {
+		return SeedConfig{}, err
+	}
 	encCfg := app.MakeEncodingConfig()
 
 	apiKeyHex = os.Getenv("OSMOSIS_ACCOUNT_KEY")
@@ -53,8 +55,8 @@ func OsmosisInit() (SeedConfig, error) {
 }
 
 // CreateGRPCConnection createa a grpc connection to a given url
-func CreateGRPCConnection(addr string) *grpc.ClientConn {
-	const GrpcConnectionTimeoutSeconds = 1000
+func CreateGRPCConnection(addr string) (*grpc.ClientConn, error) {
+	const GrpcConnectionTimeoutSeconds = 100000
 
 	ctx, cancel := context.WithTimeout(context.Background(),
 		time.Duration(GrpcConnectionTimeoutSeconds)*time.Millisecond)
@@ -65,13 +67,8 @@ func CreateGRPCConnection(addr string) *grpc.ClientConn {
 	)
 
 	if err != nil {
-		// TODO: fix this wart, handle the error gracefully somewhere
-		// We run GRPCConnection for the edge node and the local node we ignore errors here unil this refactor
-		log.Println(
-			"Local client not connected, this error is here as you've attempted to run local seeds with no local node running")
-
-		return nil
+		return nil, err
 	}
 
-	return conn
+	return conn, nil
 }
