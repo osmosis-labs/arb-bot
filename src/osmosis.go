@@ -71,7 +71,7 @@ func getOsmosisPrice(tokenInDenom, tokenOutDenom string, tokenInAmount int64) (f
 	return amountOut, nil
 }
 
-func getBalance(SeedConfig) error {
+func GetBalance(SeedConfig) error {
 	grpcConnection := seedConfig.GRPCConnection
 	senderAddress := sdk.AccAddress(seedConfig.Key.PubKey().Address())
 
@@ -129,10 +129,9 @@ func TopOfBlockAuction(seedConfig SeedConfig, from sdk.Coin, to sdk.Coin) error 
 
 	bundle := [][]byte{txBytes1}
 
-	//	sequenceOffset := uint64(1)
 	bidMsg := &auctiontypes.MsgAuctionBid{
 		Bidder:       senderAddress.String(),
-		Bid:          sdk.NewCoin(USDCDenom, sdk.NewInt(1000000)),
+		Bid:          sdk.NewCoin(BidDenom, sdk.NewInt(100)),
 		Transactions: bundle,
 	}
 

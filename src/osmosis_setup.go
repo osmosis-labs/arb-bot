@@ -21,8 +21,13 @@ type SeedConfig struct {
 }
 
 const (
-	GRPC_ADDRESS = "https://grpc.osmosis.zone:9090/"
-	CHAIN_ID     = "osmosis-1"
+	// GRPC_ADDRESS = "grpc.osmosis.zone:9090"
+	// CHAIN_ID     = "osmosis-1"
+	// FEE_DENOM = "uosmo"
+
+	GRPC_ADDRESS = "localhost:9090"
+	CHAIN_ID     = "my-chain"
+	FEE_DENOM    = "stake"
 )
 
 var (
@@ -56,7 +61,7 @@ func OsmosisInit() (SeedConfig, error) {
 
 // CreateGRPCConnection createa a grpc connection to a given url
 func CreateGRPCConnection(addr string) (*grpc.ClientConn, error) {
-	const GrpcConnectionTimeoutSeconds = 100000
+	const GrpcConnectionTimeoutSeconds = 1000
 
 	ctx, cancel := context.WithTimeout(context.Background(),
 		time.Duration(GrpcConnectionTimeoutSeconds)*time.Millisecond)

@@ -76,7 +76,7 @@ func SignAuthenticatorMsgMultiSignersBytes(
 	txBytes, _ := SignAuthenticatorMsgWithHeight(
 		encCfg.TxConfig,
 		msgs,
-		sdk.Coins{sdk.NewInt64Coin("uosmo", 7000)},
+		sdk.Coins{sdk.NewInt64Coin(FEE_DENOM, 7000)},
 		1700000,
 		chainID,
 		accNums,
@@ -266,7 +266,7 @@ func SignAndBroadcastAuthenticatorMsgMultiSignersWithBlock(
 	txBytes, _ := SignAuthenticatorMsgWithHeight(
 		encCfg.TxConfig,
 		msgs,
-		sdk.Coins{sdk.NewInt64Coin("uosmo", 7000)},
+		sdk.Coins{sdk.NewInt64Coin(FEE_DENOM, 7000)},
 		1700000,
 		chainID,
 		accNums,

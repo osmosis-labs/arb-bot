@@ -23,6 +23,7 @@ func main() {
 	}
 
 	err = src.TopOfBlockAuction(seedConfig, sdk.NewCoin("uosmo", sdk.NewInt(10)), sdk.NewCoin("test", sdk.NewInt(10)))
+	// err = src.GetBalance(seedConfig)
 	if err != nil {
 		log.Fatal(err)
 	}
