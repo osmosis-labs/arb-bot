@@ -10,6 +10,7 @@ import (
 	"github.com/osmosis-labs/osmosis/v25/app"
 	"github.com/osmosis-labs/osmosis/v25/app/params"
 	"google.golang.org/grpc"
+	"google.golang.org/grpc/credentials/insecure"
 )
 
 type SeedConfig struct {
@@ -21,9 +22,9 @@ type SeedConfig struct {
 }
 
 const (
-	// GRPC_ADDRESS = "grpc.osmosis.zone:9090"
+	// GRPC_ADDRESS = "grpc.osmosis.zone:443"
 	// CHAIN_ID     = "osmosis-1"
-	// FEE_DENOM = "uosmo"
+	// FEE_DENOM    = "uosmo"
 
 	GRPC_ADDRESS = "localhost:9090"
 	CHAIN_ID     = "my-chain"
@@ -67,8 +68,8 @@ func CreateGRPCConnection(addr string) (*grpc.ClientConn, error) {
 		time.Duration(GrpcConnectionTimeoutSeconds)*time.Millisecond)
 	defer cancel()
 	conn, err := grpc.DialContext(ctx, addr,
-		grpc.WithInsecure(),
 		grpc.WithBlock(),
+		grpc.WithTransportCredentials(insecure.NewCredentials()),
 	)
 
 	if err != nil {
