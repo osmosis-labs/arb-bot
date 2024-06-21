@@ -20,6 +20,8 @@ import (
 	poolmanagertypes "github.com/osmosis-labs/osmosis/v25/x/poolmanager/types"
 )
 
+// Note that the amount here should be in human readable exponent
+// E.g) getting usdc price of 1 bitcoin would be GetOsmosisBTCToUSDCPrice(1)
 func GetOsmosisBTCToUSDCPrice(tokenInAmount float64) (float64, error) {
 	amountWithExponentApplied := int64(tokenInAmount * math.Pow(10, osmosisWBTCExponent))
 
@@ -42,7 +44,18 @@ func GetOsmosisUSDCToBTCPrice(tokenInAmount float64) (float64, error) {
 }
 
 type QuoteResponse struct {
-	AmountOut string `json:"amount_out"`
+	AmountOut string  `json:"amount_out"`
+	Route     []Route `json:"route"`
+}
+
+type Route struct {
+	Pools    []Pool `json:"pools"`
+	InAmount string `json:"in_amount"`
+}
+
+type Pool struct {
+	PoolId        uint64 `json:"id"`
+	TokenOutdenom string `json:"token_out_denom"`
 }
 
 func getOsmosisPrice(tokenInDenom, tokenOutDenom string, tokenInAmount int64) (float64, error) {
@@ -57,13 +70,34 @@ func getOsmosisPrice(tokenInDenom, tokenOutDenom string, tokenInAmount int64) (f
 		return 0, fmt.Errorf("error fetching price from Osmosis: status code %d", resp.StatusCode)
 	}
 
-	var osmosisResp QuoteResponse
-	err = json.NewDecoder(resp.Body).Decode(&osmosisResp)
+	var quoteResponse QuoteResponse
+	err = json.NewDecoder(resp.Body).Decode(&quoteResponse)
 	if err != nil {
 		return 0, fmt.Errorf("error decoding response: %v", err)
 	}
 
-	amountOut, err := strconv.ParseFloat(osmosisResp.AmountOut, 64)
+	// manually unmarshal struct returned from sqs to poolmanager type struct
+	// we can't directly unmarshal into pool manager's SwapAmountInSplitRoute
+	// due to json tag differences
+	route := make([]poolmanagertypes.SwapAmountInSplitRoute, len(quoteResponse.Route))
+
+	for i, quotedRoute := range quoteResponse.Route {
+		inAmount, ok := sdk.NewIntFromString(quotedRoute.InAmount)
+		if !ok {
+			return 0, fmt.Errorf("error parsing in amount from endpoint")
+		}
+		route[i].TokenInAmount = inAmount
+
+		// Initialize the Pools slice for the current route with the length of quotedRoute.Pools
+		route[i].Pools = make([]poolmanagertypes.SwapAmountInRoute, len(quotedRoute.Pools))
+
+		for j, pool := range quotedRoute.Pools {
+			route[i].Pools[j].PoolId = pool.PoolId
+			route[i].Pools[j].TokenOutDenom = pool.TokenOutdenom
+		}
+	}
+
+	amountOut, err := strconv.ParseFloat(quoteResponse.AmountOut, 64)
 	if err != nil {
 		return 0, fmt.Errorf("error parsing amount_out: %v", err)
 	}
