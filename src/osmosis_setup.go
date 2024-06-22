@@ -22,13 +22,8 @@ type SeedConfig struct {
 }
 
 const (
-	// GRPC_ADDRESS = "grpc.osmosis.zone:443"
-	// CHAIN_ID     = "osmosis-1"
-	// FEE_DENOM    = "uosmo"
-
-	GRPC_ADDRESS = "localhost:9090"
-	CHAIN_ID     = "my-chain"
-	FEE_DENOM    = "stake"
+	CHAIN_ID  = "osmosis-1"
+	FEE_DENOM = "uosmo"
 )
 
 var (
@@ -37,7 +32,8 @@ var (
 )
 
 func OsmosisInit() (SeedConfig, error) {
-	conn, err := CreateGRPCConnection(GRPC_ADDRESS)
+	grpcAddress := os.Getenv("GRPC_ADDRESS")
+	conn, err := CreateGRPCConnection(grpcAddress)
 	if err != nil {
 		return SeedConfig{}, err
 	}
