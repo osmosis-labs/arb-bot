@@ -2,9 +2,20 @@ package src
 
 import (
 	"fmt"
+	"time"
 )
 
 func CheckArbitrage(seedConfig SeedConfig) error {
+	time := getTime()
+	fmt.Println("=======Starting ARB in ", time)
+
+	btcBalance, usdtBalance, err := GetTotalBalance(seedConfig)
+	if err != nil {
+		return err
+	}
+
+	fmt.Println("Balance before arb is, btc: ", btcBalance, " usdt: ", usdtBalance)
+
 	binanceBTCPrice, err := GetBinanceBTCToUSDTPrice()
 	if err != nil {
 		return fmt.Errorf("error fetching Binance BTC price: %v", err)
@@ -39,6 +50,13 @@ func CheckArbitrage(seedConfig SeedConfig) error {
 			return err
 		}
 
+		btcBalance, usdtBalance, err := GetTotalBalance(seedConfig)
+		if err != nil {
+			return err
+		}
+
+		fmt.Println("Balance after arb is, btc: ", btcBalance, " usdt: ", usdtBalance)
+
 	} else if binanceBTCPrice*riskFactor > osmosisBTCPrice {
 		fmt.Println("Arbitrage Opportunity: Sell BTC on Binance, Buy BTC on Osmosis")
 
@@ -51,6 +69,14 @@ func CheckArbitrage(seedConfig SeedConfig) error {
 		if err != nil {
 			return err
 		}
+
+		btcBalance, usdtBalance, err := GetTotalBalance(seedConfig)
+		if err != nil {
+			return err
+		}
+
+		fmt.Println("Balance after arb is, btc: ", btcBalance, " usdt: ", usdtBalance)
+
 	} else {
 		fmt.Println("No arb opportunity")
 	}
@@ -70,4 +96,13 @@ func GetTotalBalance(seedConfig SeedConfig) (float64, float64, error) {
 	}
 
 	return binanceBTCBalance + osmosisBTCBalance, binanceUSDTBalance + osmosisUSDTBalance, nil
+}
+
+func getTime() string {
+	// Get the current time
+	currentTime := time.Now()
+
+	// Format the time as "YYYY-MM-DD HH:MM:SS"
+	formattedTime := currentTime.Format("2024-01-02 15:04:05")
+	return formattedTime
 }
