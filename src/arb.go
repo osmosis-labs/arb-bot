@@ -4,7 +4,7 @@ import (
 	"fmt"
 )
 
-func CheckArbitrage() error {
+func CheckArbitrage(seedConfig SeedConfig) error {
 	binanceBTCPrice, err := GetBinanceBTCToUSDTPrice()
 	if err != nil {
 		return fmt.Errorf("error fetching Binance BTC price: %v", err)
@@ -52,34 +52,22 @@ func CheckArbitrage() error {
 			return err
 		}
 	} else {
-		fmt.Println("no arb opportunity")
+		fmt.Println("No arb opportunity")
 	}
 
 	return nil
 }
 
-// b, u, err := GetBinanceBTCUSDTBalance()
-// if err != nil {
-// 	return fmt.Errorf("error fetching Osmosis BTC price: %v", err)
-// }
+func GetTotalBalance(seedConfig SeedConfig) (float64, float64, error) {
+	binanceBTCBalance, binanceUSDTBalance, err := GetBinanceBTCUSDTBalance()
+	if err != nil {
+		return 0, 0, fmt.Errorf("error fetching Binance balance: %v", err)
+	}
 
-// fmt.Printf("btc, usdc balance: %f, %f\n", b, u)
+	osmosisBTCBalance, osmosisUSDTBalance, err := GetOsmosisBTCUSDTBalance(seedConfig)
+	if err != nil {
+		return 0, 0, fmt.Errorf("error fetching Osmosis balance: %v", err)
+	}
 
-// boughtAmt, _, err := BuyBinanceBTC(defaultArbAmt)
-// if err != nil {
-// 	return err
-// }
-// fmt.Printf("bought %f\n", boughtAmt)
-
-// b, u, err = GetBinanceBTCUSDTBalance()
-// if err != nil {
-// 	return fmt.Errorf("error fetching Osmosis BTC price: %v", err)
-// }
-
-// fmt.Printf("btc, usdc balance: %f, %f\n", b, u)
-
-// sellAmt, _, err := SellBinanceBTC(defaultArbAmt)
-// if err != nil {
-// 	return err
-// }
-// fmt.Printf("sold %f\n", sellAmt)
+	return binanceBTCBalance + osmosisBTCBalance, binanceUSDTBalance + osmosisUSDTBalance, nil
+}

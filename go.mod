@@ -8,7 +8,6 @@ require (
 	github.com/adshao/go-binance/v2 v2.5.1
 	github.com/cosmos/cosmos-sdk v0.47.8
 	github.com/joho/godotenv v1.5.1
-	github.com/osmosis-labs/osmosis/osmomath v0.0.13
 	github.com/osmosis-labs/osmosis/v25 v25.0.3
 	github.com/skip-mev/block-sdk v1.4.2
 	google.golang.org/grpc v1.63.2
@@ -146,6 +145,7 @@ require (
 	github.com/mtibben/percent v0.2.1 // indirect
 	github.com/oasisprotocol/curve25519-voi v0.0.0-20220708102147-0a8a51822cae // indirect
 	github.com/opencontainers/go-digest v1.0.0 // indirect
+	github.com/osmosis-labs/osmosis/osmomath v0.0.13 // indirect
 	github.com/osmosis-labs/osmosis/osmoutils v0.0.13 // indirect
 	github.com/osmosis-labs/osmosis/x/epochs v0.0.9 // indirect
 	github.com/osmosis-labs/osmosis/x/ibc-hooks v0.0.15 // indirect

@@ -104,22 +104,34 @@ func getOsmosisPriceAndRoute(tokenInDenom, tokenOutDenom string, tokenInAmount i
 	return amountOut, route, nil
 }
 
-func GetBalance(SeedConfig) error {
+// GetOsmosisBTCUSDTalance returns the balances in human readable exponents
+func GetOsmosisBTCUSDTBalance(SeedConfig) (float64, float64, error) {
 	grpcConnection := seedConfig.GRPCConnection
 	senderAddress := sdk.AccAddress(seedConfig.Key.PubKey().Address())
 
 	bankClient := banktypes.NewQueryClient(grpcConnection)
-	balance, err := bankClient.Balance(
+	usdcBalanceResponse, err := bankClient.Balance(
 		context.Background(),
-		&banktypes.QueryBalanceRequest{Address: senderAddress.String(), Denom: "uosmo"},
+		&banktypes.QueryBalanceRequest{Address: senderAddress.String(), Denom: USDCDenom},
 	)
 
 	if err != nil {
-		return err
+		return 0, 0, err
 	}
+	btcBalanceResponse, err := bankClient.Balance(
+		context.Background(),
+		&banktypes.QueryBalanceRequest{Address: senderAddress.String(), Denom: BTCDenom},
+	)
 
-	fmt.Println("balance: ", balance)
-	return nil
+	if err != nil {
+		return 0, 0, err
+	}
+	usdcAmount := usdcBalanceResponse.Balance.Amount
+	btcAmount := btcBalanceResponse.Balance.Amount
+
+	usdcAmountWithExponent := float64(usdcAmount.Int64()) / math.Pow(10, osmosisUSDCExponent)
+	btcAmountWithExponent := float64(btcAmount.Int64()) / math.Pow(10, osmosisWBTCExponent)
+	return usdcAmountWithExponent, btcAmountWithExponent, nil
 }
 
 func BuyOsmosisBTC(seedConfig SeedConfig, route []poolmanagertypes.SwapAmountInSplitRoute, binanceBTCPrice float64) error {

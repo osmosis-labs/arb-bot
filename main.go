@@ -1,6 +1,7 @@
 package main
 
 import (
+	"fmt"
 	"log"
 
 	"github.com/joho/godotenv"
@@ -20,9 +21,11 @@ func main() {
 		log.Fatal(err)
 	}
 
-	err = src.GetBalance(seedConfig)
+	btcBalance, usdcBalance, err := src.GetOsmosisBTCUSDTBalance(seedConfig)
 	if err != nil {
 		log.Fatal(err)
 	}
 
+	fmt.Println(btcBalance)
+	fmt.Println(usdcBalance)
 }
