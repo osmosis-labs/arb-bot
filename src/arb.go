@@ -7,7 +7,7 @@ import (
 
 func CheckArbitrage(seedConfig SeedConfig) error {
 	time := getTime()
-	fmt.Println("=======Starting ARB in ", time)
+	fmt.Println("=======Starting ARB in ", time, "=======")
 
 	btcBalance, usdtBalance, err := GetTotalBalance(seedConfig)
 	if err != nil {
@@ -21,7 +21,10 @@ func CheckArbitrage(seedConfig SeedConfig) error {
 		return fmt.Errorf("error fetching Binance BTC price: %v", err)
 	}
 
-	arbAmount := defaultArbAmt
+	arbAmount, err := calculateArbAmount(btcBalance, usdtBalance, binanceBTCPrice)
+	if err != nil {
+		return err
+	}
 	fmt.Println("Binance BTC Price:", binanceBTCPrice)
 
 	osmosisBTCPrice, route, err := GetOsmosisBTCToUSDCPriceAndRoute(arbAmount)
@@ -84,6 +87,23 @@ func CheckArbitrage(seedConfig SeedConfig) error {
 	return nil
 }
 
+// for arb amount, we use 10% of the smaller asset we have between btc and usdt
+// amount being returned is in units of btc
+func calculateArbAmount(btcBalance, usdtBalance, btcPrice float64) (float64, error) {
+	const arbPercentage = 0.1
+
+	if btcBalance == 0 || usdtBalance == 0 {
+		return 0, fmt.Errorf("insufficient balance for arbitrage")
+	}
+
+	// Calculate the BTC equivalent of the USDT balance
+	btcEquivalent := usdtBalance / btcPrice
+
+	// Calculate the arbitrage amount based on the smaller balance in BTC units
+	arbAmount := arbPercentage * min(btcBalance, btcEquivalent)
+	return arbAmount, nil
+}
+
 func GetTotalBalance(seedConfig SeedConfig) (float64, float64, error) {
 	binanceBTCBalance, binanceUSDTBalance, err := GetBinanceBTCUSDTBalance()
 	if err != nil {
@@ -103,6 +123,6 @@ func getTime() string {
 	currentTime := time.Now()
 
 	// Format the time as "YYYY-MM-DD HH:MM:SS"
-	formattedTime := currentTime.Format("2024-01-02 15:04:05")
+	formattedTime := currentTime.Format("2006-01-02 15:04:05")
 	return formattedTime
 }
