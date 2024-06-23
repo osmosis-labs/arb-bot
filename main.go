@@ -3,6 +3,7 @@ package main
 import (
 	"fmt"
 	"log"
+	"time"
 
 	"github.com/joho/godotenv"
 
@@ -10,22 +11,32 @@ import (
 )
 
 func main() {
+	// Load the .env file
 	err := godotenv.Load(".env")
-
 	if err != nil {
 		log.Fatalf("Error loading .env file")
 	}
 
 	seedConfig, err := src.OsmosisInit()
 	if err != nil {
-		log.Fatal(err)
+		fmt.Println(err)
 	}
 
-	btcBalance, usdcBalance, err := src.GetOsmosisBTCUSDTBalance(seedConfig)
-	if err != nil {
-		log.Fatal(err)
-	}
+	// Set up a ticker to run the function every minute
+	ticker := time.NewTicker(1 * time.Minute)
+	defer ticker.Stop()
 
-	fmt.Println(btcBalance)
-	fmt.Println(usdcBalance)
+	for {
+		// Execute the function
+		err = runArbitrageCheck(seedConfig)
+		fmt.Println(err)
+
+		// Wait for the next tick
+		<-ticker.C
+	}
+}
+
+func runArbitrageCheck(seedConfig src.SeedConfig) error {
+	err := src.CheckArbitrage(seedConfig)
+	return err
 }
