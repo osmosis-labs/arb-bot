@@ -24,22 +24,22 @@ import (
 func GetOsmosisBTCToUSDCPriceAndRoute(tokenInAmount float64) (float64, []poolmanagertypes.SwapAmountInSplitRoute, error) {
 	amountWithExponentApplied := int64(tokenInAmount * math.Pow(10, osmosisWBTCExponent))
 
-	btcPrice, route, err := getOsmosisPriceAndRoute(BTCDenom, USDCDenom, amountWithExponentApplied)
+	btcExecutionPrice, route, err := getOsmosisPriceAndRoute(BTCDenom, USDCDenom, amountWithExponentApplied)
 	if err != nil {
 		return 0, []poolmanagertypes.SwapAmountInSplitRoute{}, err
 	}
 
-	return btcPrice / math.Pow(10, osmosisUSDCExponent), route, nil
+	return btcExecutionPrice * math.Pow(10, osmosisWBTCExponent-osmosisUSDCExponent), route, nil
 }
 
 func GetOsmosisUSDCToBTCPriceAndRoute(tokenInAmount float64) (float64, []poolmanagertypes.SwapAmountInSplitRoute, error) {
-	amountWithExponentApplied := int64(tokenInAmount * math.Pow(10, osmosisWBTCExponent))
+	amountWithExponentApplied := int64(tokenInAmount * math.Pow(10, osmosisUSDCExponent))
 
 	usdcPrice, route, err := getOsmosisPriceAndRoute(USDCDenom, BTCDenom, amountWithExponentApplied)
 	if err != nil {
 		return 0, []poolmanagertypes.SwapAmountInSplitRoute{}, err
 	}
-	return usdcPrice / math.Pow(10, osmosisUSDCExponent), route, nil
+	return usdcPrice / math.Pow(10, osmosisWBTCExponent-osmosisUSDCExponent), route, nil
 }
 
 type QuoteResponse struct {
@@ -59,6 +59,7 @@ type Pool struct {
 
 func getOsmosisPriceAndRoute(tokenInDenom, tokenOutDenom string, tokenInAmount int64) (float64, []poolmanagertypes.SwapAmountInSplitRoute, error) {
 	url := fmt.Sprintf("%s?tokenIn=%d%s&tokenOutDenom=%s&humanDenoms=false", osmosisQuoteAPI, tokenInAmount, tokenInDenom, tokenOutDenom)
+	fmt.Println(url)
 	resp, err := http.Get(url)
 	if err != nil {
 		return 0, []poolmanagertypes.SwapAmountInSplitRoute{}, fmt.Errorf("error fetching price from Osmosis: %v", err)
@@ -101,7 +102,7 @@ func getOsmosisPriceAndRoute(tokenInDenom, tokenOutDenom string, tokenInAmount i
 		return 0, []poolmanagertypes.SwapAmountInSplitRoute{}, fmt.Errorf("error parsing amount_out: %v", err)
 	}
 
-	return amountOut, route, nil
+	return amountOut / float64(tokenInAmount), route, nil
 }
 
 // GetOsmosisBTCUSDTalance returns the balances in human readable exponents
