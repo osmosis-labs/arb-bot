@@ -59,7 +59,6 @@ type Pool struct {
 
 func getOsmosisPriceAndRoute(tokenInDenom, tokenOutDenom string, tokenInAmount int64) (float64, []poolmanagertypes.SwapAmountInSplitRoute, error) {
 	url := fmt.Sprintf("%s?tokenIn=%d%s&tokenOutDenom=%s&humanDenoms=false", osmosisQuoteAPI, tokenInAmount, tokenInDenom, tokenOutDenom)
-	fmt.Println(url)
 	resp, err := http.Get(url)
 	if err != nil {
 		return 0, []poolmanagertypes.SwapAmountInSplitRoute{}, fmt.Errorf("error fetching price from Osmosis: %v", err)
