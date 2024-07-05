@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"math"
 	"net/http"
+	"os"
 	"strconv"
 
 	"github.com/cosmos/cosmos-sdk/client/grpc/tmservice"
@@ -16,30 +17,31 @@ import (
 	banktypes "github.com/cosmos/cosmos-sdk/x/bank/types"
 	auctiontypes "github.com/skip-mev/block-sdk/x/auction/types"
 
+	"github.com/osmosis-labs/arb-bot/src/domain"
 	poolmanagertypes "github.com/osmosis-labs/osmosis/v25/x/poolmanager/types"
 )
 
 // Note that the amount here should be in human readable exponent
 // E.g) getting usdc price of 1 bitcoin would be GetOsmosisBTCToUSDCPrice(1)
-func GetOsmosisBTCToUSDCPriceAndRoute(tokenInAmount float64) (float64, []poolmanagertypes.SwapAmountInSplitRoute, error) {
-	amountWithExponentApplied := int64(tokenInAmount * math.Pow(10, osmosisWBTCExponent))
+func GetOsmosisBTCToUSDCPriceAndRoute(tokenInAmount float64, baseDenom, quoteDenom string, baseExponent, quoteExponent int) (float64, []poolmanagertypes.SwapAmountInSplitRoute, error) {
+	amountWithExponentApplied := int64(tokenInAmount * math.Pow(10, float64(baseExponent)))
 
-	btcExecutionPrice, route, err := getOsmosisPriceAndRoute(BTCDenom, USDCDenom, amountWithExponentApplied)
+	btcExecutionPrice, route, err := getOsmosisPriceAndRoute(baseDenom, quoteDenom, amountWithExponentApplied)
 	if err != nil {
 		return 0, []poolmanagertypes.SwapAmountInSplitRoute{}, err
 	}
 
-	return btcExecutionPrice * math.Pow(10, osmosisWBTCExponent-osmosisUSDCExponent), route, nil
+	return btcExecutionPrice * math.Pow(10, float64(baseExponent)-float64(quoteExponent)), route, nil
 }
 
-func GetOsmosisUSDCToBTCPriceAndRoute(tokenInAmount float64) (float64, []poolmanagertypes.SwapAmountInSplitRoute, error) {
-	amountWithExponentApplied := int64(tokenInAmount * math.Pow(10, osmosisUSDCExponent))
+func GetOsmosisUSDCToBTCPriceAndRoute(tokenInAmount float64, baseDenom, quoteDenom string, baseExponent, quoteExponent int) (float64, []poolmanagertypes.SwapAmountInSplitRoute, error) {
+	amountWithExponentApplied := int64(tokenInAmount * math.Pow(10, float64(quoteExponent)))
 
-	usdcPrice, route, err := getOsmosisPriceAndRoute(USDCDenom, BTCDenom, amountWithExponentApplied)
+	usdcPrice, route, err := getOsmosisPriceAndRoute(quoteDenom, baseDenom, amountWithExponentApplied)
 	if err != nil {
 		return 0, []poolmanagertypes.SwapAmountInSplitRoute{}, err
 	}
-	return usdcPrice / math.Pow(10, osmosisWBTCExponent-osmosisUSDCExponent), route, nil
+	return usdcPrice / math.Pow(10, float64(baseExponent)-float64(quoteExponent)), route, nil
 }
 
 type QuoteResponse struct {
@@ -59,7 +61,27 @@ type Pool struct {
 
 func getOsmosisPriceAndRoute(tokenInDenom, tokenOutDenom string, tokenInAmount int64) (float64, []poolmanagertypes.SwapAmountInSplitRoute, error) {
 	url := fmt.Sprintf("%s?tokenIn=%d%s&tokenOutDenom=%s&humanDenoms=false", osmosisQuoteAPI, tokenInAmount, tokenInDenom, tokenOutDenom)
-	resp, err := http.Get(url)
+
+	// Define the headers
+	headers := map[string]string{
+		"x-api-key": os.Getenv("SQS_OSMOSIS_API_KEY"),
+	}
+
+	// Create a new request
+	req, err := http.NewRequest("GET", url, nil)
+	if err != nil {
+		fmt.Println("Error creating request:", err)
+		return 0, []poolmanagertypes.SwapAmountInSplitRoute{}, fmt.Errorf("error fetching price from Osmosis: %v", err)
+	}
+
+	// Add headers to the request
+	for key, value := range headers {
+		req.Header.Set(key, value)
+	}
+
+	// Make the request
+	client := &http.Client{}
+	resp, err := client.Do(req)
 	if err != nil {
 		return 0, []poolmanagertypes.SwapAmountInSplitRoute{}, fmt.Errorf("error fetching price from Osmosis: %v", err)
 	}
@@ -105,14 +127,14 @@ func getOsmosisPriceAndRoute(tokenInDenom, tokenOutDenom string, tokenInAmount i
 }
 
 // GetOsmosisBTCUSDTalance returns the balances in human readable exponents
-func GetOsmosisBTCUSDTBalance(SeedConfig) (float64, float64, error) {
+func GetOsmosisBTCUSDTBalance(seedConfig SeedConfig, arbMetadata domain.OsmoBinanceArbPairMetadata) (float64, float64, error) {
 	grpcConnection := seedConfig.GRPCConnection
 	senderAddress := sdk.AccAddress(seedConfig.Key.PubKey().Address())
 
 	bankClient := banktypes.NewQueryClient(grpcConnection)
 	usdcBalanceResponse, err := bankClient.Balance(
 		context.Background(),
-		&banktypes.QueryBalanceRequest{Address: senderAddress.String(), Denom: USDCDenom},
+		&banktypes.QueryBalanceRequest{Address: senderAddress.String(), Denom: arbMetadata.QuoteChainDenom},
 	)
 
 	if err != nil {
@@ -120,7 +142,7 @@ func GetOsmosisBTCUSDTBalance(SeedConfig) (float64, float64, error) {
 	}
 	btcBalanceResponse, err := bankClient.Balance(
 		context.Background(),
-		&banktypes.QueryBalanceRequest{Address: senderAddress.String(), Denom: BTCDenom},
+		&banktypes.QueryBalanceRequest{Address: senderAddress.String(), Denom: arbMetadata.BaseChainDenom},
 	)
 
 	if err != nil {
@@ -129,17 +151,17 @@ func GetOsmosisBTCUSDTBalance(SeedConfig) (float64, float64, error) {
 	usdcAmount := usdcBalanceResponse.Balance.Amount
 	btcAmount := btcBalanceResponse.Balance.Amount
 
-	usdcAmountWithExponent := float64(usdcAmount.Int64()) / math.Pow(10, osmosisUSDCExponent)
-	btcAmountWithExponent := float64(btcAmount.Int64()) / math.Pow(10, osmosisWBTCExponent)
+	usdcAmountWithExponent := float64(usdcAmount.Int64()) / math.Pow(10, float64(arbMetadata.ExponentQuote))
+	btcAmountWithExponent := float64(btcAmount.Int64()) / math.Pow(10, float64(arbMetadata.ExponentBase))
 	return usdcAmountWithExponent, btcAmountWithExponent, nil
 }
 
-func BuyOsmosisBTC(seedConfig SeedConfig, route []poolmanagertypes.SwapAmountInSplitRoute, binanceBTCPrice float64) error {
-	return SwapWithTopOfBlockAuction(seedConfig, route, USDCDenom, 1)
+func BuyOsmosisBase(seedConfig SeedConfig, baseDenom string, route []poolmanagertypes.SwapAmountInSplitRoute, binanceBTCPrice float64) error {
+	return SwapWithTopOfBlockAuction(seedConfig, route, baseDenom, 1)
 }
 
-func SellOsmosisBTC(seedConfig SeedConfig, route []poolmanagertypes.SwapAmountInSplitRoute, binanceBTCPrice float64) error {
-	return SwapWithTopOfBlockAuction(seedConfig, route, BTCDenom, 1)
+func SellOsmosisBase(seedConfig SeedConfig, baseDenom string, route []poolmanagertypes.SwapAmountInSplitRoute, binanceBTCPrice float64) error {
+	return SwapWithTopOfBlockAuction(seedConfig, route, baseDenom, 1)
 }
 
 func SwapWithTopOfBlockAuction(seedConfig SeedConfig,
