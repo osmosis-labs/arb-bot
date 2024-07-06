@@ -1,7 +1,9 @@
 package src
 
 import (
+	"context"
 	"os"
+	"time"
 
 	"github.com/99designs/keyring"
 	"github.com/cosmos/cosmos-sdk/crypto/keys/secp256k1"
@@ -73,9 +75,12 @@ func OsmosisInit(keyringPassword string) (SeedConfig, error) {
 
 // CreateGRPCConnection createa a grpc connection to a given url
 func CreateGRPCConnection(addr string) (*grpc.ClientConn, error) {
-	const GrpcConnectionTimeoutMs = 5000
+	const GrpcConnectionTimeoutSeconds = 5
 
-	grpcClient, err := grpc.Dial(addr,
+	ctx, cancel := context.WithTimeout(context.Background(),
+		time.Duration(GrpcConnectionTimeoutSeconds)*time.Second)
+	defer cancel()
+	grpcClient, err := grpc.DialContext(ctx, addr,
 		grpc.WithTransportCredentials(insecure.NewCredentials()),
 		grpc.WithDefaultCallOptions(grpc.MaxCallRecvMsgSize(50*1024*1024*1024)),
 		grpc.WithDefaultCallOptions(grpc.MaxCallSendMsgSize(50*1024*1024*1024)),
