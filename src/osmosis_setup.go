@@ -3,8 +3,6 @@ package src
 import (
 	"os"
 
-	// "github.com/cosmos/cosmos-sdk/crypto/keyring"
-
 	"github.com/99designs/keyring"
 	"github.com/cosmos/cosmos-sdk/crypto/keys/secp256k1"
 	"github.com/osmosis-labs/osmosis/v25/app"
