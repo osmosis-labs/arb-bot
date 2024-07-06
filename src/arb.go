@@ -42,10 +42,10 @@ func CheckArbitrage(seedConfig SeedConfig, arbPairMetaData domain.OsmoBinanceArb
 
 	osmosisBTCPrice, route, err := GetOsmosisBTCToUSDCPriceAndRoute(arbAmount, arbPairMetaData.BaseChainDenom, arbPairMetaData.QuoteChainDenom, arbPairMetaData.ExponentBase, arbPairMetaData.ExponentQuote)
 	if err != nil {
-		return fmt.Errorf("error fetching Osmosis base price: %v", err)
+		return fmt.Errorf("error fetching Osmosis base price: %v - %v", err, arbPairMetaData)
 	}
 
-	fmt.Println("Osmosis BTC Price:", osmosisBTCPrice)
+	fmt.Println("Osmosis base Price:", osmosisBTCPrice)
 
 	if binanceBasePrice < osmosisBTCPrice*arbPairMetaData.RiskFactor {
 
@@ -62,17 +62,17 @@ func CheckArbitrage(seedConfig SeedConfig, arbPairMetaData domain.OsmoBinanceArb
 			return err
 		}
 
-		_, _, err = BuyBinanceBTC(arbAmount)
+		_, _, err = BuyBinanceBase(arbAmount, arbPairMetaData.BinancePairTicker)
 		if err != nil {
 			return err
 		}
 
-		btcBalance, usdtBalance, err := GetTotalBalance(seedConfig, arbPairMetaData)
+		baseBalance, quoteBalance, err := GetTotalBalance(seedConfig, arbPairMetaData)
 		if err != nil {
 			return err
 		}
 
-		fmt.Println("Balance after arb is, base: ", btcBalance, " quote: ", usdtBalance)
+		fmt.Println("Balance after arb is, base: ", baseBalance, " quote: ", quoteBalance)
 
 		arbitrageOpCount.Add(1)
 
@@ -84,7 +84,7 @@ func CheckArbitrage(seedConfig SeedConfig, arbPairMetaData domain.OsmoBinanceArb
 			return err
 		}
 
-		_, _, err = SellBinanceBTC(arbAmount)
+		_, _, err = SellBinanceBase(arbAmount, arbPairMetaData.BinancePairTicker)
 		if err != nil {
 			return err
 		}
@@ -109,33 +109,35 @@ func CheckArbitrage(seedConfig SeedConfig, arbPairMetaData domain.OsmoBinanceArb
 
 // for arb amount, we use 10% of the smaller asset we have between btc and usdt
 // amount being returned is in units of btc
-func calculateArbAmount(btcBalance, usdtBalance, btcPrice float64) (float64, error) {
+func calculateArbAmount(baseBalance, quoteBalance, basePrice float64) (float64, error) {
 	const arbPercentage = 0.1
 
-	if btcBalance == 0 || usdtBalance == 0 {
+	if baseBalance == 0 || quoteBalance == 0 {
 		return 0, fmt.Errorf("insufficient balance for arbitrage")
 	}
 
 	// Calculate the BTC equivalent of the USDT balance
-	btcEquivalent := usdtBalance / btcPrice
+	baseEquivalent := quoteBalance / basePrice
+
+	fmt.Println("baseBalance: ", baseBalance, " baseEquivalent: ", baseEquivalent, " quoteBalance: ", quoteBalance, " basePrice: ", basePrice)
 
 	// Calculate the arbitrage amount based on the smaller balance in BTC units
-	arbAmount := arbPercentage * min(btcBalance, btcEquivalent)
+	arbAmount := arbPercentage * min(baseBalance, baseEquivalent)
 	return arbAmount, nil
 }
 
 func GetTotalBalance(seedConfig SeedConfig, arbMetadata domain.OsmoBinanceArbPairMetadata) (float64, float64, error) {
-	binanceBTCBalance, binanceUSDTBalance, err := GetBinanceBTCUSDTBalance()
+	binancebaseBalance, binancequoteBalance, err := GetBinanceBaseQuoteBalance(arbMetadata)
 	if err != nil {
 		return 0, 0, fmt.Errorf("error fetching Binance balance: %v", err)
 	}
 
-	osmosisBTCBalance, osmosisUSDTBalance, err := GetOsmosisBTCUSDTBalance(seedConfig, arbMetadata)
+	osmosisbaseBalance, osmosisquoteBalance, err := GetOsmosisBaseQuoteBalance(seedConfig, arbMetadata)
 	if err != nil {
-		return 0, 0, fmt.Errorf("error fetching Osmosis balance: %v", err)
+		return 0, 0, fmt.Errorf("error fetching Osmosis balance: %v, - %v", err, arbMetadata)
 	}
 
-	return binanceBTCBalance + osmosisBTCBalance, binanceUSDTBalance + osmosisUSDTBalance, nil
+	return binancebaseBalance + osmosisbaseBalance, binancequoteBalance + osmosisquoteBalance, nil
 }
 
 func getTime() string {

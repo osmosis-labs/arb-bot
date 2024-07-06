@@ -1,11 +1,11 @@
 package src
 
 import (
-	"context"
-	"encoding/hex"
 	"os"
-	"time"
 
+	// "github.com/cosmos/cosmos-sdk/crypto/keyring"
+
+	"github.com/99designs/keyring"
 	"github.com/cosmos/cosmos-sdk/crypto/keys/secp256k1"
 	"github.com/osmosis-labs/osmosis/v25/app"
 	"github.com/osmosis-labs/osmosis/v25/app/params"
@@ -31,7 +31,7 @@ var (
 	seedConfig SeedConfig
 )
 
-func OsmosisInit() (SeedConfig, error) {
+func OsmosisInit(keyringPassword string) (SeedConfig, error) {
 	grpcAddress := os.Getenv("GRPC_ADDRESS")
 	conn, err := CreateGRPCConnection(grpcAddress)
 	if err != nil {
@@ -39,12 +39,29 @@ func OsmosisInit() (SeedConfig, error) {
 	}
 	encCfg := app.MakeEncodingConfig()
 
-	apiKeyHex = os.Getenv("OSMOSIS_ACCOUNT_KEY")
-	bz, err := hex.DecodeString(apiKeyHex)
+	keyringConfig := keyring.Config{
+		ServiceName:              "osmosis",
+		FileDir:                  os.Getenv("OSMOSIS_KEYRING_PATH"),
+		KeychainTrustApplication: true,
+		FilePasswordFunc: func(prompt string) (string, error) {
+			return keyringPassword, nil
+		},
+	}
+	openKeyring, err := keyring.Open(keyringConfig)
 	if err != nil {
 		return SeedConfig{}, err
 	}
-	privKey := &secp256k1.PrivKey{Key: bz}
+
+	keyring, err := openKeyring.Get(os.Getenv("OSMOSIS_KEYRING_KEY_NAME"))
+	if err != nil {
+		return SeedConfig{}, err
+	}
+
+	privKey := &secp256k1.PrivKey{}
+
+	if err := privKey.Unmarshal(keyring.Data); err != nil {
+		return SeedConfig{}, err
+	}
 
 	seedConfig = SeedConfig{
 		ChainID:        CHAIN_ID,
@@ -58,19 +75,17 @@ func OsmosisInit() (SeedConfig, error) {
 
 // CreateGRPCConnection createa a grpc connection to a given url
 func CreateGRPCConnection(addr string) (*grpc.ClientConn, error) {
-	const GrpcConnectionTimeoutSeconds = 1000
+	const GrpcConnectionTimeoutMs = 5000
 
-	ctx, cancel := context.WithTimeout(context.Background(),
-		time.Duration(GrpcConnectionTimeoutSeconds)*time.Millisecond)
-	defer cancel()
-	conn, err := grpc.DialContext(ctx, addr,
-		grpc.WithBlock(),
+	grpcClient, err := grpc.Dial(addr,
 		grpc.WithTransportCredentials(insecure.NewCredentials()),
+		grpc.WithDefaultCallOptions(grpc.MaxCallRecvMsgSize(50*1024*1024*1024)),
+		grpc.WithDefaultCallOptions(grpc.MaxCallSendMsgSize(50*1024*1024*1024)),
 	)
 
 	if err != nil {
 		return nil, err
 	}
 
-	return conn, nil
+	return grpcClient, nil
 }
