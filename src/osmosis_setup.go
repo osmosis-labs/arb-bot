@@ -2,11 +2,14 @@ package src
 
 import (
 	"context"
+	"fmt"
 	"os"
 	"time"
 
 	"github.com/99designs/keyring"
+	sdkkeyring "github.com/cosmos/cosmos-sdk/crypto/keyring"
 	"github.com/cosmos/cosmos-sdk/crypto/keys/secp256k1"
+	sdk "github.com/cosmos/cosmos-sdk/types"
 	"github.com/osmosis-labs/osmosis/v25/app"
 	"github.com/osmosis-labs/osmosis/v25/app/params"
 	"google.golang.org/grpc"
@@ -47,21 +50,39 @@ func OsmosisInit(keyringPassword string) (SeedConfig, error) {
 			return keyringPassword, nil
 		},
 	}
+
+	// Open the keyring
 	openKeyring, err := keyring.Open(keyringConfig)
 	if err != nil {
 		return SeedConfig{}, err
 	}
 
-	keyring, err := openKeyring.Get(os.Getenv("OSMOSIS_KEYRING_KEY_NAME"))
+	// Get the keyring record
+	openRecord, err := openKeyring.Get(os.Getenv("OSMOSIS_KEYRING_KEY_NAME"))
 	if err != nil {
 		return SeedConfig{}, err
 	}
 
-	privKey := &secp256k1.PrivKey{}
-
-	if err := privKey.Unmarshal(keyring.Data); err != nil {
+	// Unmarshal the keyring record
+	keyringRecord := new(sdkkeyring.Record)
+	if err := keyringRecord.Unmarshal(openRecord.Data); err != nil {
 		return SeedConfig{}, err
 	}
+
+	// Get the right type
+	localRecord := keyringRecord.GetLocal()
+
+	// Unmarshal the private key
+	privKey := &secp256k1.PrivKey{}
+	if err := privKey.Unmarshal(localRecord.PrivKey.Value); err != nil {
+		return SeedConfig{}, err
+
+	}
+
+	// Get the address
+	osmosisAddress := sdk.AccAddress(privKey.PubKey().Address())
+
+	fmt.Println("your Osmosis address: ", osmosisAddress.String())
 
 	seedConfig = SeedConfig{
 		ChainID:        CHAIN_ID,
