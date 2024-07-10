@@ -1,8 +1,8 @@
-# Arb Bot
+# CEX <> Osmosis Arb Bot
 
 Osmosis arbitrage bot agains Binance.
 
-Uses top-of-block auction.
+Uses top-of-block auction. 
 
 ## Setup
 
