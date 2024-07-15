@@ -16,8 +16,8 @@ type BinanceResponse struct {
 	Price  string `json:"price"`
 }
 
-func GetBinanceBTCToUSDTPrice() (float64, error) {
-	url := fmt.Sprintf("https://api.binance.com/api/v3/ticker/price?symbol=%s", binanceBTCUSDTTicker)
+func GetBinancePrice(ticker string) (float64, error) {
+	url := fmt.Sprintf("https://api.binance.com/api/v3/ticker/price?symbol=%s", ticker)
 	resp, err := http.Get(url)
 	if err != nil {
 		return 0, fmt.Errorf("error fetching price from Binance: %v", err)
@@ -42,8 +42,8 @@ func GetBinanceBTCToUSDTPrice() (float64, error) {
 	return price, nil
 }
 
-func GetBinanceUSDCToBTCPrice() (float64, error) {
-	btcPrice, err := GetBinanceBTCToUSDTPrice()
+func GetBinanceInvertedPrice(ticker string) (float64, error) {
+	btcPrice, err := GetBinancePrice(ticker)
 	if err != nil {
 		return 0, err
 	}
