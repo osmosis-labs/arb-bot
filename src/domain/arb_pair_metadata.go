@@ -7,6 +7,9 @@ type OsmoBinanceArbPairMetadata struct {
 	ExponentBase    int
 	ExponentQuote   int
 
+	BaseBinanceSymbol  string
+	QuoteBinanceSymbol string
+
 	BinancePairTicker string
 
 	RiskFactor float64

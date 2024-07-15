@@ -6,13 +6,31 @@ Uses top-of-block auction.
 
 ## Setup
 
-Create a `.env` file with the following content:
+### Setup Keyring
+
 ```bash
-GRPC_ADDRESS=http://localhost:26657
-OSMOSIS_ACCOUNT_KEY=your_key_here
-SQS_OSMOSIS_API_KEY=your_key_here
+osmosisd keys add test --keyring-backend file --recover
+
+# Enter your mnemonic
+
+# Confirm creation
+ls $HOME/.osmosisd/keyring-file
+
+# Use result for OSMOSIS_KEYRING_PATH 
 ```
 
+### Setup .env
+
+Create a `.env` file with the following content:
+```bash
+GRPC_ADDRESS=localhost:9090
+OSMOSIS_KEYRING_PATH="/root/.osmosisd/keyring-file"
+OSMOSIS_KEYRING_KEY_NAME=your_name
+SQS_OSMOSIS_API_KEY=your_key
+BINANCE_API_KEY=your_key
+BINANCE_SECRET_KEY=yor_secret
 ```
-go run main.go
+
+```bash
+go run main.go --password <your_keyring_password>
 ```

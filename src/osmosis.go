@@ -24,6 +24,7 @@ import (
 // Note that the amount here should be in human readable exponent
 // E.g) getting usdc price of 1 bitcoin would be GetOsmosisBTCToUSDCPrice(1)
 func GetOsmosisBTCToUSDCPriceAndRoute(tokenInAmount float64, baseDenom, quoteDenom string, baseExponent, quoteExponent int) (float64, []poolmanagertypes.SwapAmountInSplitRoute, error) {
+	fmt.Printf("tokenInAmount: %f, baseExponent: %d\n", tokenInAmount, baseExponent)
 	amountWithExponentApplied := int64(tokenInAmount * math.Pow(10, float64(baseExponent)))
 
 	btcExecutionPrice, route, err := getOsmosisPriceAndRoute(baseDenom, quoteDenom, amountWithExponentApplied)
@@ -83,11 +84,13 @@ func getOsmosisPriceAndRoute(tokenInDenom, tokenOutDenom string, tokenInAmount i
 	client := &http.Client{}
 	resp, err := client.Do(req)
 	if err != nil {
+		fmt.Printf("error url: %s\n", url)
 		return 0, []poolmanagertypes.SwapAmountInSplitRoute{}, fmt.Errorf("error fetching price from Osmosis: %v", err)
 	}
 	defer resp.Body.Close()
 
 	if resp.StatusCode != http.StatusOK {
+		fmt.Printf("error url: %s\n", url)
 		return 0, []poolmanagertypes.SwapAmountInSplitRoute{}, fmt.Errorf("error fetching price from Osmosis: status code %d", resp.StatusCode)
 	}
 
@@ -127,7 +130,7 @@ func getOsmosisPriceAndRoute(tokenInDenom, tokenOutDenom string, tokenInAmount i
 }
 
 // GetOsmosisBTCUSDTalance returns the balances in human readable exponents
-func GetOsmosisBTCUSDTBalance(seedConfig SeedConfig, arbMetadata domain.OsmoBinanceArbPairMetadata) (float64, float64, error) {
+func GetOsmosisBaseQuoteBalance(seedConfig SeedConfig, arbMetadata domain.OsmoBinanceArbPairMetadata) (float64, float64, error) {
 	grpcConnection := seedConfig.GRPCConnection
 	senderAddress := sdk.AccAddress(seedConfig.Key.PubKey().Address())
 
@@ -140,7 +143,7 @@ func GetOsmosisBTCUSDTBalance(seedConfig SeedConfig, arbMetadata domain.OsmoBina
 	if err != nil {
 		return 0, 0, err
 	}
-	btcBalanceResponse, err := bankClient.Balance(
+	baseBalanceResponse, err := bankClient.Balance(
 		context.Background(),
 		&banktypes.QueryBalanceRequest{Address: senderAddress.String(), Denom: arbMetadata.BaseChainDenom},
 	)
@@ -149,7 +152,7 @@ func GetOsmosisBTCUSDTBalance(seedConfig SeedConfig, arbMetadata domain.OsmoBina
 		return 0, 0, err
 	}
 	usdcAmount := usdcBalanceResponse.Balance.Amount
-	btcAmount := btcBalanceResponse.Balance.Amount
+	btcAmount := baseBalanceResponse.Balance.Amount
 
 	usdcAmountWithExponent := float64(usdcAmount.Int64()) / math.Pow(10, float64(arbMetadata.ExponentQuote))
 	btcAmountWithExponent := float64(btcAmount.Int64()) / math.Pow(10, float64(arbMetadata.ExponentBase))
